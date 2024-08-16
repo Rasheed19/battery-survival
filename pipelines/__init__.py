@@ -1,0 +1,6 @@
+from pipelines.data_increment_effect import data_increment_effect_pipeline
+from pipelines.download import download_pipeline
+from pipelines.eda import eda_pipeline
+from pipelines.num_cycle_effect import num_cycle_effect_pipeline
+from pipelines.sig_effect import sig_effect_pipeline
+from pipelines.training import training_pipeline
