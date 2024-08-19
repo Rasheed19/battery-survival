@@ -102,6 +102,10 @@ def get_modelled_data(
     signature_depth: int,
     subsample_step: None | int = None,
 ) -> tuple[pd.DataFrame, np.ndarray]:
+    if regime not in ["charge", "discharge"]:
+        raise ValueError(
+            f"regime must be either 'charge' or 'discharge' but {regime} is given."
+        )
     X, y = [], []
     cycle_number_array = np.arange(2, num_cycles + 1)
 
