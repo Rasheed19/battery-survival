@@ -23,7 +23,7 @@ they use features extracted from charge or discharge data regime: the charge, an
     make create-required-dir
     ```
 
-# Usage
+## Usage
 This project is broken down into pipelines which allow for reproducibility, customization and ease of use. The following are the various pipelines that can be run from your local development environment.
 
 1. `download`, run the download pipeline to download the data used for modelling and experimentations:
@@ -52,5 +52,12 @@ This project is broken down into pipelines which allow for reproducibility, cust
     ```
     python run.py --pipeline data-increment-effect
     ```
-
+1. `low-cycle-prediction`, run the low-cycle prediction pipeline to investigate the effect of using various number of cycle data models' performance at inference time:
+    ```
+    python run.py --pipeline low-cycle-prediction
+    ```
+1. `sparsity-robustness`, run the sparsity robustness pipeline to investigate the effect of different degree of voltage curve sparsity on models' performance. Two sparsity levels were proposed: (i) sparsity at training data level, and (ii) sparsity at test data level. To run this experiment, you must provide addition argument via the flag `--sparsity-level`. This flag takes either `train` or `test` to run the experiment for sparsity at the training or test data level respectively. For instance, for `train`, run: 
+    ```
+    python run.py --pipeline --sparsity-level train
+    ```
 Note that all generated plots and data after running any of the pipelines above will be stored in `plots` and `data` folder respectively with appropriate tags for ease of identification.
