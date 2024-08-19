@@ -9,7 +9,7 @@ from steps import (
 )
 from utils.definitions import Definition
 from utils.generic_helper import get_logger, get_survival_metrics
-from utils.plotter import plot_survival_hazard_function
+from utils.plotter import plot_survival_hazard_fn
 
 
 def training_pipeline(
@@ -95,7 +95,7 @@ def training_pipeline(
             "Plotting survival and hazard functions with respect to source model..."
         )
         for pt in ["survival", "hazard"]:
-            plot_survival_hazard_function(
+            plot_survival_hazard_fn(
                 model=model,
                 loaded_data=loaded_data,
                 regime=regime,

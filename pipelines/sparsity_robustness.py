@@ -37,6 +37,11 @@ def sparsity_robustness_pipeline(
 ) -> None:
     logger.info("Sparsity robustness pipeline has started.")
 
+    if sparsity_level not in ["train", "test"]:
+        raise ValueError(
+            f"sparsity_level must be either 'train' or 'test' but {sparsity_level} is given."
+        )
+
     loaded_data = data_loader(loaded_cycles=loaded_cycles, not_loaded=not_loaded)
 
     MIN_STEP, MAX_STEP = 1, 10
@@ -77,7 +82,7 @@ def sparsity_robustness_pipeline(
                     parameter_space=parameter_space,
                 )
 
-            elif sparsity_level == "train":
+            else:
                 X_test, y_test = get_modelled_data(
                     data=loaded_data,
                     regime=regime,
@@ -102,7 +107,7 @@ def sparsity_robustness_pipeline(
                         parameter_space=parameter_space,
                     )
 
-                elif sparsity_level == "test":
+                else:
                     X_test, y_test = get_modelled_data(
                         data=loaded_data,
                         regime=regime,
