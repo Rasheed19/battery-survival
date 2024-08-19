@@ -1,26 +1,16 @@
-import itertools
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from scipy.integrate import simpson
+import seaborn as sns
 from sklearn.inspection import permutation_importance
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import (
-    PredictionErrorDisplay,
-    mean_absolute_error,
-    mean_squared_error,
-    mean_absolute_percentage_error,
-    r2_score,
-)
 
 from utils.definitions import Definition
 from utils.generic_helper import (
-    score_survival_model,
-    load_yaml_file,
     get_rcparams,
     read_data,
+    score_survival_model,
 )
 
 plt.rcParams.update(get_rcparams())
@@ -32,7 +22,6 @@ def set_size(
     subplots: tuple = (1, 1),
     adjust_height: float | None = None,
 ) -> tuple:
-
     # for general use
     if width == "thesis":
         width_pt = 426.79135
@@ -66,7 +55,6 @@ def plot_eol_strip_plot(
     unique_batch_labels: list,
     save_tag: str,
 ) -> None:
-
     _, ax = plt.subplots(figsize=set_size())
 
     batch_labels = []
@@ -124,7 +112,6 @@ def plot_eol_strip_plot(
 def plot_voltage_curve_by_batch(
     loaded_data: dict, num_cycles: int, regime: str
 ) -> None:
-
     alphabet_tags = ["a", "b", "c", "d", "e", "f", "g", "h"]
     fig = plt.figure(figsize=set_size(subplots=(2, 4), adjust_height=0.1))
 
@@ -149,7 +136,7 @@ def plot_voltage_curve_by_batch(
             ax.plot(
                 time,
                 voltage,
-                linewidth=0.2,
+                linewidth=0.1,
                 color="darkcyan" if regime == "charge" else "crimson",
             )
 
@@ -171,13 +158,13 @@ def plot_voltage_curve_by_batch(
 
 
 def plot_data_increment_effect_history(
-    history: dict[str, list[float] | np.ndarray]
+    history: dict[str, list[float] | np.ndarray],
 ) -> None:
     fig = plt.figure(figsize=set_size(subplots=(1, 3)))
     ylabels = ["C-index", "Cum. dynamic AUC", "Int. Brier score"]
     alphabet_tags = ["a", "b", "c"]
 
-    for i, l in enumerate(ylabels):
+    for i, ylabel in enumerate(ylabels):
         ax = fig.add_subplot(1, 3, i + 1)
         ax.text(
             x=-0.1,
@@ -205,7 +192,7 @@ def plot_data_increment_effect_history(
         ax.xaxis.set_major_locator(tck.MaxNLocator(nbins=4))
         ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=4))
         ax.set_xlabel("Sample fraction")
-        ax.set_ylabel(ylabels[i])
+        ax.set_ylabel(ylabel)
 
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.3))
@@ -250,7 +237,6 @@ def plot_num_cycle_effect_history(history: dict[str, list[float] | np.ndarray]) 
 
 
 def plot_sig_effect_history(history: dict[str, list[float] | np.ndarray]) -> None:
-
     regimes = ["charge", "discharge"]
     colors = ["darkcyan", "crimson"]
     line_styles = ["-", "--"]
@@ -280,6 +266,111 @@ def plot_sig_effect_history(history: dict[str, list[float] | np.ndarray]) -> Non
     return None
 
 
+def plot_low_cycle_prediction_history(
+    history: dict[str, list[float] | np.ndarray],
+) -> None:
+    fig = plt.figure(figsize=set_size(subplots=(1, 3)))
+    ylabels = ["C-index", "Cum. dynamic AUC", "Int. Brier score"]
+    alphabet_tags = ["a", "b", "c"]
+
+    for i, ylabel in enumerate(ylabels):
+        ax = fig.add_subplot(1, 3, i + 1)
+        ax.text(
+            x=-0.1,
+            y=1.25,
+            s=r"\bf {}".format(alphabet_tags[i]),
+            transform=ax.transAxes,
+            fontweight="bold",
+            va="top",
+        )
+        ax.plot(
+            history["cycle_number_list"],
+            history["charge"][:, i],
+            label="charge",
+            color="darkcyan",
+            linestyle="-",
+        )
+        ax.plot(
+            history["cycle_number_list"],
+            history["discharge"][:, i],
+            label="discharge",
+            color="crimson",
+            linestyle="--",
+        )
+
+        ax.xaxis.set_major_locator(tck.MaxNLocator(steps=[1, 5]))
+        ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=4))
+        ax.set_xlabel("Cycle number threshold")
+        ax.set_ylabel(ylabel)
+
+        # ax.set_xlim([None, history["cycle_number_list"].max()])
+        # ax.set_ylim(
+        #     [None, max(history["charge"][:, i].max(), history["discharge"][:, i].max())]
+        # )
+
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.3))
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_low_cycle_prediction.pdf",
+        bbox_inches="tight",
+    )
+
+    return None
+
+
+def plot_sparsity_robustness_history(
+    history: dict[str, list[float] | np.ndarray],
+    figure_tag: str,
+    alphabet_tags: list[str],
+) -> None:
+    fig = plt.figure(figsize=set_size(subplots=(1, 3)))
+    ylabels = ["C-index", "Cum. dynamic AUC", "Int. Brier score"]
+
+    for i, ylabel in enumerate(ylabels):
+        ax = fig.add_subplot(1, 3, i + 1)
+        ax.text(
+            x=-0.1,
+            y=1.25,
+            s=r"\bf {}".format(alphabet_tags[i]),
+            transform=ax.transAxes,
+            fontweight="bold",
+            va="top",
+        )
+        ax.plot(
+            history["step_number_array"],
+            history["charge"][:, i],
+            label="charge",
+            color="darkcyan",
+            linestyle="-",
+        )
+        ax.plot(
+            history["step_number_array"],
+            history["discharge"][:, i],
+            label="discharge",
+            color="crimson",
+            linestyle="--",
+        )
+
+        ax.xaxis.set_major_locator(tck.MaxNLocator(steps=[1, 2]))
+        ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=4))
+        ax.set_xlabel("Step number")
+        ax.set_ylabel(ylabel)
+
+    if figure_tag == "test":
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(
+            handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.3)
+        )
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_sparsity_robustness_{figure_tag}.pdf",
+        bbox_inches="tight",
+    )
+
+    return None
+
+
 def plot_survival_hazard_function(
     model: Pipeline,
     loaded_data: dict[str, dict],
@@ -289,7 +380,6 @@ def plot_survival_hazard_function(
     X_inf: pd.DataFrame,
     plot_type: str,
 ) -> None:
-
     # match cell to its predictions
     if plot_type == "survival":
         survival_functions = model.predict_survival_function(X_inf, return_array=True)
@@ -365,7 +455,6 @@ def plot_feature_importance(
     y: np.ndarray,
     regime: str,
 ) -> None:
-
     result = permutation_importance(
         estimator=model,
         X=X,
@@ -409,7 +498,6 @@ def plot_feature_importance(
 
 
 def plot_sig_num_cycle_effect_history() -> None:
-
     sig_effect_history = read_data(
         fname="sig_effect_history.pkl",
         path="./data",

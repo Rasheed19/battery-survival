@@ -1,13 +1,10 @@
-import pandas as pd
-import numpy as np
 import random
-import iisignature
-import esig
 from dataclasses import dataclass
 
-
-from utils.definitions import Definition
-from utils.generic_helper import load_yaml_file
+import esig
+import iisignature
+import numpy as np
+import pandas as pd
 
 
 def batch_splitter(
@@ -15,7 +12,6 @@ def batch_splitter(
     test_ratio: float,
     batch_name: str,
 ) -> tuple[list, list]:
-
     # get train ratio
     train_ratio = 1.0 - test_ratio
 
@@ -37,7 +33,6 @@ def batch_splitter(
 def get_train_test_split(
     loaded_data: dict, batch_names: list[str], test_ratio: float
 ) -> tuple[list, list]:
-
     train_cells, test_cells = [], []
 
     for batch_name in batch_names:
@@ -91,7 +86,6 @@ def get_path_signatures(
     voltage: np.ndarray,
     signature_depth: int = 2,
 ) -> np.ndarray:
-
     path = np.stack((time, voltage), axis=-1)
     return iisignature.sig(path, signature_depth)
 
@@ -106,8 +100,8 @@ def get_modelled_data(
     num_cycles: int,
     cell_list: list[str],
     signature_depth: int,
+    subsample_step: None | int = None,
 ) -> tuple[pd.DataFrame, np.ndarray]:
-
     X, y = [], []
     cycle_number_array = np.arange(2, num_cycles + 1)
 
@@ -116,6 +110,9 @@ def get_modelled_data(
 
         for c in cycle_number_array:
             time, voltage = data[cell]["cycle_data"][str(c)][regime]
+            if subsample_step is not None:
+                time = time[::subsample_step]
+                voltage = voltage[::subsample_step]
             signatures.append(
                 get_path_signatures(
                     time=time,
@@ -136,22 +133,6 @@ def get_modelled_data(
             )
         X.append(signature_of_signatures)
 
-        # # get charge voltage curves
-        # t_1, v_1 = data[cell]["cycle_data"]["2"][
-        #     regime
-        # ]  # note cycle 2 is the first cycle as cycle 1 has been removed (originally)
-        # t_num_cycles, v_num_cycles = data[cell]["cycle_data"][str(num_cycles)][regime]
-
-        # sig_1 = get_path_signatures(
-        #     time=t_1, voltage=v_1, signature_depth=signature_depth
-        # )
-        # sig_num_cycles = get_path_signatures(
-        #     time=t_num_cycles, voltage=v_num_cycles, signature_depth=signature_depth
-        # )
-        # features = np.concatenate((sig_1, sig_num_cycles))
-
-        # X.append(features.tolist())
-
         censored = data[cell]["summary_data"]["batch_name"] in ["b4", "b5", "b6", "b7"]
         cycled_to_eol = False if censored else True
 
@@ -159,9 +140,6 @@ def get_modelled_data(
 
     return pd.DataFrame(
         data=X,
-        # columns=get_sig_convention(
-        #     dimension=2, depth=signature_depth, num_cycles=num_cycles
-        # ),
         columns=[f"feature {i + 1}" for i in range(len(X[0]))],
     ), np.array(y, dtype=[("cycled_to_eol", "?"), ("end_of_life", "<f8")])
 
@@ -183,7 +161,6 @@ class DataFrameCaster:
 
 @dataclass(frozen=True)
 class DataModeller:
-
     X_train: pd.DataFrame
     y_train: np.ndarray
     X_test: pd.DataFrame
