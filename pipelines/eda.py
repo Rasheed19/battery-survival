@@ -1,12 +1,10 @@
-import numpy as np
-
+from steps import data_loader
+from utils.definitions import Definition
+from utils.generic_helper import get_logger
 from utils.plotter import (
     plot_eol_strip_plot,
     plot_voltage_curve_by_batch,
 )
-from utils.generic_helper import get_logger
-from utils.definitions import Definition
-from steps import data_loader
 
 
 def eda_pipeline(
@@ -14,7 +12,6 @@ def eda_pipeline(
     num_cycles: int,
     not_loaded: bool = False,
 ) -> None:
-
     logger = get_logger(__name__)
 
     logger.info("Loading combined data...")

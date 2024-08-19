@@ -4,8 +4,10 @@ from pipelines import (
     data_increment_effect_pipeline,
     download_pipeline,
     eda_pipeline,
+    low_cycle_prediction_pipeline,
     num_cycle_effect_pipeline,
     sig_effect_pipeline,
+    sparsity_robustness_pipeline,
     training_pipeline,
 )
 from utils.definitions import Definition
@@ -23,7 +25,8 @@ from utils.generic_helper import load_yaml_file
     help="""
 Give the name of the pipeline to run.
 Valid option must be an element of
-['eda', 'download', training', 'sig-effect', 'num-cycle-effect', 'data-increment-effect']
+['eda', 'download', training', 'sig-effect', 'num-cycle-effect',
+'data-increment-effect', 'sparsity-robustness']
 """,
 )
 @click.option(
@@ -33,6 +36,16 @@ Valid option must be an element of
 Give the name of the data regime to use.
 Valid option must be an element of
 ['charge', 'discharge'].
+""",
+)
+@click.option(
+    "--sparsity-level",
+    type=click.STRING,
+    help="""
+Give where to introduce sparsity, 
+either in the train or test data. This 
+arg must be used with 'sparsity-robutness'
+pipeline. Valid options are ['train', 'test'].
 """,
 )
 @click.option(
@@ -54,6 +67,7 @@ Valid option must be an element of
 def main(
     pipeline: str,
     regime: str,
+    sparsity_level: str,
     not_loaded: bool = False,
     include_inference: bool = False,
 ) -> None:
@@ -111,10 +125,31 @@ def main(
             signature_depth=DATA_CONFIG["signature_depth"],
             parameter_space=MODEL_CONFIG["parameter_space"],
         )
+
+    elif pipeline == "low-cycle-prediction":
+        low_cycle_prediction_pipeline(
+            loaded_cycles=DATA_CONFIG["loaded_cycles"],
+            num_cycles=DATA_CONFIG["num_cycles"],
+            not_loaded=not_loaded,
+            test_size=MODEL_CONFIG["test_size"],
+            signature_depth=DATA_CONFIG["signature_depth"],
+            parameter_space=MODEL_CONFIG["parameter_space"],
+        )
+
+    elif pipeline == "sparsity-robustness":
+        sparsity_robustness_pipeline(
+            sparsity_level=sparsity_level,
+            loaded_cycles=DATA_CONFIG["loaded_cycles"],
+            num_cycles=DATA_CONFIG["num_cycles"],
+            not_loaded=not_loaded,
+            test_size=MODEL_CONFIG["test_size"],
+            signature_depth=DATA_CONFIG["signature_depth"],
+            parameter_space=MODEL_CONFIG["parameter_space"],
+        )
     else:
         raise ValueError(
             f"pipeline must be an element of ['eda', 'download', training', 'sig-effect', 'num-cycle-effect', "
-            f"'data-increment-effect'] but {pipeline} is given"
+            f"'data-increment-effect', 'low-cycle-prediction', 'sparsity-robustness'] but {pipeline} is given"
         )
     return None
 

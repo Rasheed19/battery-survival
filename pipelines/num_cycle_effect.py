@@ -2,12 +2,14 @@ import numpy as np
 
 from steps import (
     data_loader,
-    data_splitter,
     data_modeller,
+    data_splitter,
     model_trainer,
 )
-from utils.generic_helper import get_logger, dump_data, read_data
+from utils.generic_helper import dump_data, get_logger
 from utils.plotter import plot_num_cycle_effect_history
+
+logger = get_logger(__name__)
 
 
 def num_cycle_effect_pipeline(
@@ -17,9 +19,6 @@ def num_cycle_effect_pipeline(
     signature_depth: int,
     parameter_space: dict,
 ) -> None:
-
-    logger = get_logger(__name__)
-
     logger.info("Signature effect pipeline has started.")
 
     # load data
@@ -40,7 +39,6 @@ def num_cycle_effect_pipeline(
         cv_scores = []
 
         for num_cycles in cycle_number_list:
-
             # call data modeller
             data_modeller_output = data_modeller(
                 loaded_data=loaded_data,
