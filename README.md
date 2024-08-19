@@ -56,8 +56,8 @@ This project is broken down into pipelines which allow for reproducibility, cust
     ```
     python run.py --pipeline low-cycle-prediction
     ```
-1. `sparsity-robustness`, run the sparsity robustness pipeline to investigate the effect of different degree of voltage curve sparsity on models' performance. Two sparsity levels were proposed: (i) sparsity at training data level, and (ii) sparsity at test data level. To run this experiment, you must provide addition argument via the flag `--sparsity-level`. This flag takes either `train` or `test` to run the experiment for sparsity at the training or test data level respectively. For instance, for `train`, run: 
+1. `sparsity-robustness`, run the sparsity robustness pipeline to investigate the effect of different degree of voltage curve sparsity on models' performance. Two sparsity levels were proposed: (i) sparsity at training data level, and (ii) sparsity at test data level. To run this experiment, you must provide additional argument via the flag `--sparsity-level`. This flag takes either `train` or `test` to run the experiment for sparsity at the training or test data level respectively. For instance, for `train`, run: 
     ```
-    python run.py --pipeline --sparsity-level train
+    python run.py --pipeline sparsity-robustness --sparsity-level train
     ```
 Note that all generated plots and data after running any of the pipelines above will be stored in `plots` and `data` folder respectively with appropriate tags for ease of identification.
