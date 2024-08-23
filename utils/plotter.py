@@ -3,6 +3,7 @@ import matplotlib.ticker as tck
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.patches import FancyBboxPatch
 from sklearn.inspection import permutation_importance
 from sklearn.pipeline import Pipeline
 
@@ -441,6 +442,14 @@ def plot_survival_hazard_function(
         if i % 4 == 0:
             ax.set_ylabel(ylabel)
 
+    # dump_data(
+    #     data={
+    #         plot_type: list(temp_surv_fn.values())[0],
+    #         "cycle": model.named_steps["sksurv"].unique_times_,
+    #     },
+    #     fname=f"{plot_type}_data_ga.pkl",
+    #     path="./data",
+    # )
     plt.savefig(
         f"{Definition.ROOT_DIR}/plots/surv_proj_{plot_type}_{regime}.pdf",
         bbox_inches="tight",
@@ -566,5 +575,123 @@ def plot_sig_num_cycle_effect_history() -> None:
     return None
 
 
+def plot_voltage_ga(regime: str) -> None:
+    loaded_data = read_data(fname="toyota_data.pkl", path=f"{Definition.ROOT_DIR}/data")
+
+    _, ax = plt.subplots(figsize=set_size(fraction=0.4))
+    sample_cell = "b1c12"
+    sample_cycle = "50"
+    time, voltage = loaded_data[sample_cell]["cycle_data"][str(sample_cycle)][regime]
+
+    ax.plot(
+        time,
+        voltage,
+        color="crimson",
+        linewidth=2,
+    )
+    ax.set_xlabel("Time (min)")
+    ax.set_ylabel("Voltage (V)")
+    ax.xaxis.set_major_locator(tck.MaxNLocator(nbins=4, steps=[5]))
+    ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=4))
+    ax.set_title(f"{regime.capitalize()} Voltage")
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_ga_voltage_{regime}.svg",
+        bbox_inches="tight",
+    )
+
+
+def plot_deg_ga(deg_type: str) -> None:
+    deg_data = read_data(
+        fname=f"{deg_type}_data_ga.pkl", path=f"{Definition.ROOT_DIR}/data"
+    )
+    cycle, deg = deg_data["cycle"], deg_data[deg_type]
+
+    _, ax = plt.subplots(figsize=set_size(fraction=0.4))
+
+    ax.plot(
+        cycle,
+        deg,
+        color="crimson",
+        linewidth=2,
+    )
+    ax.set_xlabel(r"Cycle, $t$")
+    ax.set_ylabel(r"$\hat{S}(t)$" if deg_type == "survival" else r"$\hat{H}(t)$")
+    ax.set_title("Cell survival" if deg_type == "survival" else "Cell risk")
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_ga_{deg_type}.svg",
+        bbox_inches="tight",
+    )
+
+
+def create_text_box_ga(text_type: str) -> None:
+    if text_type not in ["cox", "sig"]:
+        raise ValueError(
+            "text_type must be either 'cox' or 'sig' " f"but {text_type} is given."
+        )
+
+    if text_type == "cox":
+        text = (
+            r"$$h(t, \mathbf{x}) = h_0(t)\exp{\left[\sum_{i=1}^{p}\beta_i x_i\right]}$$"
+        )
+        width, height, caption = 0.47, 0.23, "Cox PH Model"
+
+    else:
+        text = r"$$\int\limits_{a<t_k<t} \cdots \int\limits_{a<t_1<t_2} dX_{t_1}^{i_1} \ldots dX_{t_k}^{i_k}$$"
+        width, height, caption = 0.46, 0.23, "Signature Method"
+
+    _, ax = plt.subplots(figsize=set_size(fraction=0.5))
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.spines[
+        [
+            "bottom",
+            "left",
+        ]
+    ].set_visible(False)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    box = FancyBboxPatch(
+        xy=(0.27, 0.35),
+        width=width,
+        height=height,
+        boxstyle="square,pad=0.1",
+        edgecolor="black",
+        facecolor="white",
+    )
+    ax.add_patch(box)
+
+    ax.text(
+        0.51,
+        0.48,
+        text,
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+    )
+    ax.text(
+        0.5,
+        0.15,
+        caption,
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+    )
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_ga_{text_type}.svg",
+        bbox_inches="tight",
+    )
+
+    return None
+
+
 if __name__ == "__main__":
-    plot_sig_num_cycle_effect_history()
+    # plot_sig_num_cycle_effect_history()
+    # plot_voltage_ga(regime="discharge")
+    # plot_deg_ga(deg_type="survival")
+    create_text_box_ga(text_type="sig")
