@@ -33,7 +33,8 @@ Valid option must be an element of
     "--regime",
     type=click.STRING,
     help="""
-Give the name of the data regime to use.
+Give the name of the data regime to use for running the training pipeline.
+This arg must be used with the 'training' pipeline. 
 Valid option must be an element of
 ['charge', 'discharge'].
 """,
@@ -61,7 +62,8 @@ pipeline. Valid options are ['train', 'test'].
     help="""Whether to run inference on source test 
     data. The inference involves predicting the 
     survival and cummulative hazard functions 
-    of the cells in the test data.
+    of the cells in the test data. This flag must be
+    used with the 'training' pipeline.
         """,
 )
 def main(
