@@ -61,6 +61,6 @@ This project is broken down into pipelines which allow for reproducibility, cust
     python run.py --pipeline sparsity-robustness --sparsity-level train
     ```
 Note that all generated plots and data after running any of the pipelines above will be stored in `plots` and `data` folder respectively with appropriate tags for ease of identification. To see help for running the pipelines, run:
-    ```
-    python run.py --help
-    ```
+```
+python run.py --help
+```
