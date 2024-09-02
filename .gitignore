@@ -158,6 +158,7 @@ data/
 plots/
 literature/
 surv.venv
+test/
 
 
 
