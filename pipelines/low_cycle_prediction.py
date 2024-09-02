@@ -45,7 +45,7 @@ def low_cycle_prediction_pipeline(
     TIME_MIN, TIME_MAX = (
         500,
         1000,
-    )  # most of the cells live between these values; will be used to calculate cumm. dynamic auc
+    )  # most of the uncensored cells live between these values; will be used to calculate cumm. dynamic auc
     REPEATS = 100
 
     history = {}
