@@ -2,16 +2,20 @@
 This repository contains all the codes for modelling and experiments performed in a research that focuses on the use of charge and discharge voltage profiles for the prediction of survival probability and hazard functions of Li-ion cells. Two models were proposed based on whether
 they use features extracted from charge or discharge data regime: the charge, and discharge models. Path signature was used as feature extraction technique.
 
+Below is the graphical abstract of the project, illustrating the modelling steps:
+
+![graphical abstract](assets/surv_proj_graphical_abstract_v3.svg)
+
 ## Set up
 1. Clone the repository by running
     ```
     git clone https://github.com/Rasheed19/battery-survival.git
     ```
-1. Navigate to the root folder,create a python virtual environment by running
+1. Navigate to the root folder, create a python virtual environment by running
     ```
     python -m venv .venv
-    ``` 
-    Note that Python 3.10 was used in this research.
+    ```
+    Note that Python 3.12 was used in this research but Python >= 3.10 should work.
 
 1. Activate the virtual environment by running
     ```
@@ -56,7 +60,7 @@ This project is broken down into pipelines which allow for reproducibility, cust
     ```
     python run.py --pipeline low-cycle-prediction
     ```
-1. `sparsity-robustness`, run the sparsity robustness pipeline to investigate the effect of different degree of voltage curve sparsity on models' performance. Two sparsity levels were proposed: (i) sparsity at training data level, and (ii) sparsity at test data level. To run this experiment, you must provide additional argument via the flag `--sparsity-level`. This flag takes either `train` or `test` to run the experiment for sparsity at the training or test data level respectively. For instance, for `train`, run: 
+1. `sparsity-robustness`, run the sparsity robustness pipeline to investigate the effect of different degree of voltage curve sparsity on models' performance. Two sparsity levels were proposed: (i) sparsity at training data level, and (ii) sparsity at test data level. To run this experiment, you must provide additional argument via the flag `--sparsity-level`. This flag takes either `train` or `test` to run the experiment for sparsity at the training or test data level respectively. For instance, for `train`, run:
     ```
     python run.py --pipeline sparsity-robustness --sparsity-level train
     ```
