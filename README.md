@@ -4,7 +4,7 @@ they use features extracted from charge or discharge data regime: the charge, an
 
 Below is the graphical abstract of the project, illustrating the modelling steps:
 
-![graphical abstract](assets/surv_proj_graphical_abstract_v3.svg)
+![graphical abstract](assets/graphical_abstract.png)
 
 ## Set up
 1. Clone the repository by running
