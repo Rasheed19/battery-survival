@@ -159,6 +159,8 @@ plots/
 literature/
 surv.venv
 test/
+.vscode/
+.python-version
 
 
 
