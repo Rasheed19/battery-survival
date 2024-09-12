@@ -20,5 +20,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=find_packages(),
-    python_requires=">=3.10",
+    python_requires="<=3.10.15",
 )
