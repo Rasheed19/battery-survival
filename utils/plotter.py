@@ -7,7 +7,7 @@ from matplotlib.patches import FancyBboxPatch
 from sklearn.inspection import permutation_importance
 from sklearn.pipeline import Pipeline
 
-from utils.definitions import Definition
+from utils.definitions import DataRegime, Definition, SurvivalPlot
 from utils.generic_helper import (
     get_rcparams,
     read_data,
@@ -138,7 +138,7 @@ def plot_voltage_curve_by_batch(
                 time,
                 voltage,
                 linewidth=0.1,
-                color="darkcyan" if regime == "charge" else "crimson",
+                color="darkcyan" if regime == DataRegime.CHARGE else "crimson",
             )
 
         if i in [4, 5, 6, 7]:
@@ -207,16 +207,15 @@ def plot_data_increment_effect_history(
 
 
 def plot_num_cycle_effect_history(history: dict[str, list[float] | np.ndarray]) -> None:
-    regimes = ["charge", "discharge"]
     colors = ["darkcyan", "crimson"]
     line_styles = ["-", "--"]
     fig, ax = plt.subplots(figsize=set_size())
 
-    for i, r in enumerate(regimes):
+    for i, r in enumerate(DataRegime):
         ax.plot(
             history["cycle_number_list"],
-            history[r],
-            label=r,
+            history[r.value],
+            label=r.value,
             color=colors[i],
             linestyle=line_styles[i],
         )
@@ -238,16 +237,15 @@ def plot_num_cycle_effect_history(history: dict[str, list[float] | np.ndarray]) 
 
 
 def plot_sig_effect_history(history: dict[str, list[float] | np.ndarray]) -> None:
-    regimes = ["charge", "discharge"]
     colors = ["darkcyan", "crimson"]
     line_styles = ["-", "--"]
     fig, ax = plt.subplots(figsize=set_size())
 
-    for i, r in enumerate(regimes):
+    for i, r in enumerate(DataRegime):
         ax.plot(
             history["signature_depths"],
-            history[r],
-            label=r,
+            history[r.value],
+            label=r.value,
             color=colors[i],
             linestyle=line_styles[i],
         )
@@ -382,17 +380,17 @@ def plot_survival_hazard_function(
     plot_type: str,
 ) -> None:
     # match cell to its predictions
-    if plot_type == "survival":
+    if plot_type == SurvivalPlot.SURVIVAL:
         survival_functions = model.predict_survival_function(X_inf, return_array=True)
         ylabel = r"$\hat{S}(t)$"
-    elif plot_type == "hazard":
+    elif plot_type == SurvivalPlot.HAZARD:
         survival_functions = model.predict_cumulative_hazard_function(
             X_inf, return_array=True
         )
         ylabel = r"$\hat{H}(t)$"
     else:
         raise ValueError(
-            f"""Wrong option. Valid options are 'survival' and 'hazard',
+            f"""Wrong option. Valid options are {SurvivalPlot.SURVIVAL} and {SurvivalPlot.HAZARD},
             but {plot_type} was provided.
             """
         )
@@ -424,7 +422,7 @@ def plot_survival_hazard_function(
                 model.named_steps["sksurv"].unique_times_,
                 (
                     fn
-                    if plot_type == "survival"
+                    if plot_type == SurvivalPlot.SURVIVAL
                     else np.log1p(
                         fn
                     )  # use log(1+x) to see the differences in hazard clearly
@@ -516,7 +514,6 @@ def plot_sig_num_cycle_effect_history() -> None:
         path="./data",
     )
 
-    regimes = ["charge", "discharge"]
     colors = ["darkcyan", "crimson"]
     line_styles = ["-", "--"]
     alphabet_tags = ["a", "b"]
@@ -535,11 +532,11 @@ def plot_sig_num_cycle_effect_history() -> None:
         )
 
         if i == 0:
-            for j, r in enumerate(regimes):
+            for j, r in enumerate(DataRegime):
                 ax.plot(
                     history["signature_depths"],
-                    history[r],
-                    label=r,
+                    history[r.value],
+                    label=r.value,
                     color=colors[j],
                     linestyle=line_styles[j],
                 )
@@ -550,11 +547,11 @@ def plot_sig_num_cycle_effect_history() -> None:
             ax.set_ylabel("Cross-validated C-index")
 
         else:
-            for j, r in enumerate(regimes):
+            for j, r in enumerate(DataRegime):
                 ax.plot(
                     history["cycle_number_list"],
-                    history[r],
-                    label=r,
+                    history[r.value],
+                    label=r.value,
                     color=colors[j],
                     linestyle=line_styles[j],
                 )

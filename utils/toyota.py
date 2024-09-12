@@ -1,9 +1,10 @@
 import os
+
 import h5py
 import numpy as np
 
+from utils.definitions import DataRegime, Definition
 from utils.generic_helper import dump_data, time_monitor
-from utils.definitions import Definition
 
 
 def load_single_batch_to_dict(
@@ -280,7 +281,6 @@ def load_all_batches_to_dict(loaded_cycles: int | None = None) -> dict[str, dict
 def get_constant_indices(
     feature: list[float] | np.ndarray, regime: str
 ) -> tuple[int, int]:
-
     constant_feature_list = []
     constant_feature_index = []
 
@@ -289,7 +289,7 @@ def get_constant_indices(
             constant_feature_list.append(feature[i - 1])
             constant_feature_index.append(i - 1)
 
-    if regime == "charge":
+    if regime == DataRegime.CHARGE:
         det_value = np.max(constant_feature_list)
         opt_list = [
             i
@@ -299,7 +299,7 @@ def get_constant_indices(
 
         return opt_list[0], opt_list[-1]
 
-    elif regime == "discharge":
+    elif regime == DataRegime.DISCHARGE:
         det_value = np.min(constant_feature_list)
         opt_list = [
             i
@@ -309,13 +309,14 @@ def get_constant_indices(
         return opt_list[0], opt_list[-1]
 
     else:
-        raise ValueError(f"option must be 'charge' or 'discharge but {regime} given.")
+        raise ValueError(
+            f"option must be {DataRegime.CHARGE} or {DataRegime.DISCHARGE} but {regime} given."
+        )
 
 
 def get_charge_discharge_values(
     data_dict: dict[str, dict], col_name: str, cell: str, cycle: str, regime: str
 ) -> np.ndarray:
-
     TOL = 1e-10
 
     # An outlier in b1c2 at cycle 2176, measurement is in seconds and thus divide it by 60
@@ -328,20 +329,22 @@ def get_charge_discharge_values(
 
     values = data_dict[cell]["cycle_dict"][cycle][col_name]
 
-    if regime == "charge":
+    if regime == DataRegime.CHARGE:
         return np.array(
             values[
                 data_dict[cell]["cycle_dict"][cycle]["t"] - summary_charge_time <= TOL
             ]
         )
-    elif regime == "discharge":
+    elif regime == DataRegime.DISCHARGE:
         return np.array(
             values[
                 data_dict[cell]["cycle_dict"][cycle]["t"] - summary_charge_time > TOL
             ]
         )
     else:
-        raise ValueError(f"option must be 'charge' or 'discharge but {regime} given.")
+        raise ValueError(
+            f"option must be {DataRegime.CHARGE} or {DataRegime.DISCHARGE} but {regime} given."
+        )
 
 
 def get_cc_voltage_curve(
@@ -352,7 +355,7 @@ def get_cc_voltage_curve(
         for k in ["I", "V", "t"]
     }
 
-    if regime == "charge":
+    if regime == DataRegime.CHARGE:
         ccv = discharge_values["V"]
         cct = discharge_values["t"]
 
@@ -362,18 +365,12 @@ def get_cc_voltage_curve(
             cct = cct[bool_filter]
             ccv = ccv[bool_filter]
 
-    elif regime == "discharge":
-
+    elif regime == DataRegime.DISCHARGE:
         # get the indices of the start and end of CC
         start_i, end_i = get_constant_indices(discharge_values["I"], regime)
 
         ccv = discharge_values["V"][start_i : end_i + 1]
         cct = discharge_values["t"][start_i : end_i + 1]
-
-    else:
-        raise ValueError(
-            f"regime must be either 'charge' or 'discharge' but {regime} was given."
-        )
 
     cct = cct - min(cct)
 
@@ -383,7 +380,6 @@ def get_cc_voltage_curve(
 def get_end_of_life(
     discharge_capacity: np.ndarray,
 ) -> tuple[float, np.ndarray, np.ndarray]:
-
     NOMINAL_CAPACITY = (
         1.1  # for Severson-Attia data, nominal capacity reported is 1.1 Ah
     )
@@ -396,7 +392,6 @@ def get_end_of_life(
 
 
 def dump_toyota_structured_data(loaded_cycles: int) -> None:
-
     all_batches: dict = load_all_batches_to_dict(loaded_cycles=loaded_cycles)
 
     structured_data: dict = {}
@@ -406,16 +401,13 @@ def dump_toyota_structured_data(loaded_cycles: int) -> None:
 
         for cycle in data["cycle_dict"]:
             cycle_data[cycle] = {
-                regime: get_cc_voltage_curve(
+                regime.value: get_cc_voltage_curve(
                     data_dict=all_batches,
                     cell=cell,
                     cycle=cycle,
-                    regime=regime,
+                    regime=regime.value,
                 )
-                for regime in [
-                    "charge",
-                    "discharge",
-                ]
+                for regime in DataRegime
             }
 
         eol, cycle_eol, discharge_capacity_eol = get_end_of_life(

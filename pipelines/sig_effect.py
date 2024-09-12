@@ -2,11 +2,12 @@ import numpy as np
 
 from steps import (
     data_loader,
-    data_splitter,
     data_modeller,
+    data_splitter,
     model_trainer,
 )
-from utils.generic_helper import get_logger, dump_data
+from utils.definitions import DataRegime
+from utils.generic_helper import dump_data, get_logger
 from utils.plotter import plot_sig_effect_history
 
 
@@ -17,7 +18,6 @@ def sig_effect_pipeline(
     test_size: float,
     parameter_space: dict,
 ) -> None:
-
     logger = get_logger(__name__)
 
     logger.info("Signature effect pipeline has started.")
@@ -34,16 +34,15 @@ def sig_effect_pipeline(
     signature_depths = np.arange(2, 5)
     history = {}
 
-    for regime in ["charge", "discharge"]:
+    for regime in DataRegime:
         cv_scores = []
 
         for depth in signature_depths:
-
             # call data modeller
             data_modeller_output = data_modeller(
                 loaded_data=loaded_data,
                 num_cycles=num_cycles,
-                regime=regime,
+                regime=regime.value,
                 train_cells=split_data["train_cells"],
                 test_cells=split_data["test_cells"],
                 signature_depth=depth,
@@ -59,10 +58,10 @@ def sig_effect_pipeline(
             cv_scores.append(best_cv_score)
 
             print(
-                f"regime={regime}, signature depth={depth}, cv c-index={best_cv_score:.4f}"
+                f"regime={regime.value}, signature depth={depth}, cv c-index={best_cv_score:.4f}"
             )
 
-        history[regime] = cv_scores
+        history[regime.value] = cv_scores
 
     history["signature_depths"] = signature_depths
     dump_data(

@@ -1,5 +1,5 @@
 from steps import data_loader
-from utils.definitions import Definition
+from utils.definitions import DataRegime, Definition
 from utils.generic_helper import get_logger
 from utils.plotter import (
     plot_eol_strip_plot,
@@ -26,11 +26,11 @@ def eda_pipeline(
 
     logger.info("Plotting cell voltage curve by batch...")
 
-    for regime in ["charge", "discharge"]:
+    for regime in DataRegime:
         plot_voltage_curve_by_batch(
             loaded_data=loaded_data,
             num_cycles=num_cycles,
-            regime=regime,
+            regime=regime.value,
         )
 
     logger.info(

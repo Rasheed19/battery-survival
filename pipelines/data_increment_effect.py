@@ -1,19 +1,19 @@
 import numpy as np
+
 from steps import (
     data_loader,
-    data_splitter,
     data_modeller,
+    data_splitter,
     model_trainer,
 )
-from utils.generic_helper import get_logger, get_survival_metrics, dump_data, read_data
+from utils.definitions import DataRegime, Definition
+from utils.generic_helper import dump_data, get_logger, get_survival_metrics
 from utils.plotter import plot_data_increment_effect_history
-from utils.definitions import Definition
 
 
 def get_all_cell_samples(
     train_cells: list[str], max_eol_cell: str, repeats: int, frac: float
 ) -> list[list[str]]:
-
     all_samples = []
     for _ in range(repeats):
         sample_train_cells = []
@@ -44,7 +44,6 @@ def data_increment_effect_pipeline(
     parameter_space: dict,
     signature_depth: int,
 ) -> None:
-
     logger = get_logger(__name__)
     logger.info("Data increment effect pipeline has started.")
 
@@ -64,12 +63,6 @@ def data_increment_effect_pipeline(
     max_eol_cell = train_cells[np.argmax(train_eol)]
     train_cells.remove(max_eol_cell)
 
-    REPEATS = 100
-    TIME_MIN, TIME_MAX = (
-        500,
-        1000,
-    )  # most of the cells live between these values; will be used to calculate cumm. dynamic auc
-
     stacked_metrics_cg = []
     stacked_metrics_dg = []
 
@@ -77,11 +70,11 @@ def data_increment_effect_pipeline(
         all_cell_samples = get_all_cell_samples(
             train_cells=train_cells,
             max_eol_cell=max_eol_cell,
-            repeats=REPEATS,
+            repeats=Definition.REPEATS,
             frac=frac,
         )
 
-        for regime in ["charge", "discharge"]:
+        for regime in DataRegime:
             c_index = []
             dynamic_auc = []
             brier_score = []
@@ -89,7 +82,7 @@ def data_increment_effect_pipeline(
                 data_modeller_output = data_modeller(
                     loaded_data=loaded_data,
                     num_cycles=num_cycles,
-                    regime=regime,
+                    regime=regime.value,
                     train_cells=sample_train_cells,
                     test_cells=split_data["test_cells"],
                     signature_depth=signature_depth,
@@ -104,19 +97,19 @@ def data_increment_effect_pipeline(
                     y_train=data_modeller_output.y_train,
                     X_test=data_modeller_output.X_test,
                     y_test=data_modeller_output.y_test,
-                    times=np.arange(TIME_MIN, TIME_MAX),
+                    times=np.arange(Definition.TIME_MIN, Definition.TIME_MAX),
                 )
                 c_index.append(metrics.c_index)
                 dynamic_auc.append(metrics.time_dependent_auc)
                 brier_score.append(metrics.time_dependent_brier_score)
 
             print(
-                f"regime={regime}, sample frac={frac:.2f}, no. of cells={len(sample_train_cells)}, "
+                f"regime={regime.value}, sample frac={frac:.2f}, no. of cells={len(sample_train_cells)}, "
                 f"c-index={np.mean(c_index):.4f}, int. dynamic auc={np.mean(dynamic_auc):.4f}, "
                 f"int. brier score={np.mean(brier_score):.4f}"
             )
 
-            if regime == "charge":
+            if regime == DataRegime.CHARGE:
                 stacked_metrics_cg.append(
                     [np.mean(lst) for lst in [c_index, dynamic_auc, brier_score]]
                 )

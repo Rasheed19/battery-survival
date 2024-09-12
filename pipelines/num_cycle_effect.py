@@ -6,6 +6,7 @@ from steps import (
     data_splitter,
     model_trainer,
 )
+from utils.definitions import DataRegime
 from utils.generic_helper import dump_data, get_logger
 from utils.plotter import plot_num_cycle_effect_history
 
@@ -35,7 +36,7 @@ def num_cycle_effect_pipeline(
     cycle_number_list = np.arange(MIN_CYCLE, MAX_CYCLE + 1)
     history = {}
 
-    for regime in ["charge", "discharge"]:
+    for regime in DataRegime:
         cv_scores = []
 
         for num_cycles in cycle_number_list:
@@ -43,7 +44,7 @@ def num_cycle_effect_pipeline(
             data_modeller_output = data_modeller(
                 loaded_data=loaded_data,
                 num_cycles=num_cycles,
-                regime=regime,
+                regime=regime.value,
                 train_cells=split_data["train_cells"],
                 test_cells=split_data["test_cells"],
                 signature_depth=signature_depth,
@@ -59,10 +60,10 @@ def num_cycle_effect_pipeline(
             cv_scores.append(best_cv_score)
 
             print(
-                f"regime={regime}, num-cycles={num_cycles}/{MAX_CYCLE}, cv c-index={best_cv_score:.4f}"
+                f"regime={regime.value}, num-cycles={num_cycles}/{MAX_CYCLE}, cv c-index={best_cv_score:.4f}"
             )
 
-        history[regime] = cv_scores
+        history[regime.value] = cv_scores
 
     history["cycle_number_list"] = cycle_number_list
     dump_data(

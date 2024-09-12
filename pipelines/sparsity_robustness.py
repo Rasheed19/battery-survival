@@ -6,6 +6,7 @@ from steps import (
     model_trainer,
 )
 from utils.data_wrangler import get_modelled_data
+from utils.definitions import DataRegime, Definition, SparsityLevel
 from utils.generic_helper import dump_data, get_logger, get_survival_metrics
 from utils.plotter import plot_sparsity_robustness_history
 
@@ -37,9 +38,9 @@ def sparsity_robustness_pipeline(
 ) -> None:
     logger.info("Sparsity robustness pipeline has started.")
 
-    if sparsity_level not in ["train", "test"]:
+    if sparsity_level not in SparsityLevel:
         raise ValueError(
-            f"sparsity_level must be either 'train' or 'test' but {sparsity_level} is given."
+            f"sparsity_level must be either {SparsityLevel.TRAIN} or {SparsityLevel.TEST} but {sparsity_level} is given."
         )
 
     loaded_data = data_loader(loaded_cycles=loaded_cycles, not_loaded=not_loaded)
@@ -48,30 +49,24 @@ def sparsity_robustness_pipeline(
 
     step_number_array = np.arange(MIN_STEP, MAX_STEP + 1)
 
-    TIME_MIN, TIME_MAX = (
-        500,
-        1000,
-    )  # most of the cells live between these values; will be used to calculate cumm. dynamic auc
-    REPEATS = 100
-
     history = {}
 
     split_data_list = get_random_train_test_splits(
-        repeats=REPEATS,
+        repeats=Definition.REPEATS,
         loaded_data=loaded_data,
         test_size=test_size,
     )
 
-    for regime in ["charge", "discharge"]:
+    for regime in DataRegime:
         c_index = []
         dynamic_auc = []
         brier_score = []
 
         for r, split_data in enumerate(split_data_list):
-            if sparsity_level == "test":
+            if sparsity_level == SparsityLevel.TEST:
                 X_train, y_train = get_modelled_data(
                     data=loaded_data,
-                    regime=regime,
+                    regime=regime.value,
                     num_cycles=num_cycles,
                     cell_list=split_data["train_cells"],
                     signature_depth=signature_depth,
@@ -85,17 +80,17 @@ def sparsity_robustness_pipeline(
             else:
                 X_test, y_test = get_modelled_data(
                     data=loaded_data,
-                    regime=regime,
+                    regime=regime.value,
                     num_cycles=num_cycles,
                     cell_list=split_data["test_cells"],
                     signature_depth=signature_depth,
                 )
 
             for h in step_number_array:
-                if sparsity_level == "train":
+                if sparsity_level == SparsityLevel.TRAIN:
                     X_train, y_train = get_modelled_data(
                         data=loaded_data,
-                        regime=regime,
+                        regime=regime.value,
                         num_cycles=num_cycles,
                         cell_list=split_data["train_cells"],
                         signature_depth=signature_depth,
@@ -110,7 +105,7 @@ def sparsity_robustness_pipeline(
                 else:
                     X_test, y_test = get_modelled_data(
                         data=loaded_data,
-                        regime=regime,
+                        regime=regime.value,
                         num_cycles=num_cycles,
                         cell_list=split_data["test_cells"],
                         signature_depth=signature_depth,
@@ -122,21 +117,23 @@ def sparsity_robustness_pipeline(
                     y_train=y_train,
                     X_test=X_test,
                     y_test=y_test,
-                    times=np.arange(TIME_MIN, TIME_MAX),
+                    times=np.arange(Definition.TIME_MIN, Definition.TIME_MAX),
                 )
 
                 c_index.append(metrics.c_index)
                 dynamic_auc.append(metrics.time_dependent_auc)
                 brier_score.append(metrics.time_dependent_brier_score)
 
-            print(f"regime={regime}, repeat={r + 1}/{REPEATS}")
+            print(f"regime={regime.value}, repeat={r + 1}/{Definition.REPEATS}")
 
         stacked_metric = np.zeros(shape=(step_number_array.shape[0], 3))
         for i, lst in enumerate([c_index, dynamic_auc, brier_score]):
             stacked_metric[:, i] = (
-                np.array(lst).reshape(REPEATS, step_number_array.shape[0]).mean(axis=0)
+                np.array(lst)
+                .reshape(Definition.REPEATS, step_number_array.shape[0])
+                .mean(axis=0)
             )
-        history[regime] = stacked_metric
+        history[regime.value] = stacked_metric
 
     history["step_number_array"] = step_number_array
     dump_data(
@@ -147,7 +144,9 @@ def sparsity_robustness_pipeline(
     plot_sparsity_robustness_history(
         history=history,
         figure_tag=sparsity_level,
-        alphabet_tags=["a", "b", "c"] if sparsity_level == "train" else ["d", "e", "f"],
+        alphabet_tags=["a", "b", "c"]
+        if sparsity_level == SparsityLevel.TRAIN
+        else ["d", "e", "f"],
     )
 
     logger.info("Sparsity robustness pipeline finished successfuly.")
@@ -166,5 +165,7 @@ if __name__ == "__main__":
     plot_sparsity_robustness_history(
         history=history,
         figure_tag=sparsity_level,
-        alphabet_tags=["a", "b", "c"] if sparsity_level == "train" else ["d", "e", "f"],
+        alphabet_tags=["a", "b", "c"]
+        if sparsity_level == SparsityLevel.TRAIN
+        else ["d", "e", "f"],
     )

@@ -7,7 +7,7 @@ from steps import (
     data_splitter,
     model_trainer,
 )
-from utils.definitions import Definition
+from utils.definitions import Definition, SurvivalPlot
 from utils.generic_helper import get_logger, get_survival_metrics
 from utils.plotter import plot_survival_hazard_function
 
@@ -29,17 +29,11 @@ def training_pipeline(
     # load data
     loaded_data = data_loader(loaded_cycles=loaded_cycles, not_loaded=not_loaded)
 
-    REPEATS = 100
-    TIME_MIN, TIME_MAX = (
-        500,
-        1000,
-    )  # most of the cells live between these values; will be used to calculate cumm. dynamic auc
-
     c_index = []
     dynamic_auc = []
     brier_score = []
 
-    for i in range(REPEATS):
+    for i in range(Definition.REPEATS):
         # split data
         split_data = data_splitter(
             loaded_data=loaded_data,
@@ -69,7 +63,7 @@ def training_pipeline(
             y_train=data_modeller_output.y_train,
             X_test=data_modeller_output.X_test,
             y_test=data_modeller_output.y_test,
-            times=np.arange(TIME_MIN, TIME_MAX),
+            times=np.arange(Definition.TIME_MIN, Definition.TIME_MAX),
         )
 
         c_index.append(metrics.c_index)
@@ -77,7 +71,7 @@ def training_pipeline(
         brier_score.append(metrics.time_dependent_brier_score)
 
         print(
-            f"repeat {i+1}/{REPEATS}: c-index={metrics.c_index:.4f}, "
+            f"repeat {i+1}/{Definition.REPEATS}: c-index={metrics.c_index:.4f}, "
             f"dynamic-auc={metrics.time_dependent_auc:.4f}, brier-score={metrics.time_dependent_brier_score:.4f}"
         )
 
@@ -94,7 +88,7 @@ def training_pipeline(
         logger.info(
             "Plotting survival and hazard functions with respect to source model..."
         )
-        for pt in ["survival", "hazard"]:
+        for pt in SurvivalPlot:
             plot_survival_hazard_function(
                 model=model,
                 loaded_data=loaded_data,
@@ -102,7 +96,7 @@ def training_pipeline(
                 batch_names=Definition.TOYOTA_BATCHES,
                 cell_list=split_data["test_cells"],
                 X_inf=data_modeller_output.X_test,
-                plot_type=pt,
+                plot_type=pt.value,
             )
 
         logger.info(

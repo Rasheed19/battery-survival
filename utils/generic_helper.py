@@ -18,7 +18,7 @@ from sksurv.metrics import (
     integrated_brier_score,
 )
 
-from utils.definitions import Definition
+from utils.definitions import CIMode, Definition
 
 
 def get_rcparams():
@@ -370,11 +370,11 @@ def get_survival_metric_ci(
     bootstrap_survival_metrics: BootstrapSurvivalMetrics,
     metric_estimates: SurvivalModelEvaluationMetrics,
     alpha: float,
-    interval_type: str = "percentile",
+    interval_type: str = CIMode.PERCENTILE,
 ) -> SurvivalModelMetricCI:
-    if interval_type not in ["percentile", "pivotal"]:
+    if interval_type not in CIMode:
         raise ValueError(
-            "'interval_type' must be 'percentile' or 'pivotal' "
+            f"'interval_type' must be {CIMode.PERCENTILE} or {CIMode.PIVOTAL} "
             f"but {interval_type} is given."
         )
 
@@ -392,7 +392,7 @@ def get_survival_metric_ci(
             metric_estimates.time_dependent_brier_score,
         ],
     ):
-        if interval_type == "percentile":
+        if interval_type == CIMode.PERCENTILE:
             ci.append(percentile_confidence_interval(data=b, alpha=alpha))
 
         else:
