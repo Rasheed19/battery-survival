@@ -15,7 +15,7 @@ Below is the graphical abstract of the project, illustrating the modelling steps
     ```
     python -m venv .venv
     ```
-    Note that Python 3.12 was used in this research but Python >= 3.10 should work.
+    Note that Python 3.10.15 was used in this research.
 
 1. Activate the virtual environment by running
     ```
