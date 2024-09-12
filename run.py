@@ -10,7 +10,7 @@ from pipelines import (
     sparsity_robustness_pipeline,
     training_pipeline,
 )
-from utils.definitions import Definition
+from utils.definitions import DataRegime, Definition, PipelineMode, SparsityLevel
 from utils.generic_helper import load_yaml_file
 
 
@@ -22,31 +22,28 @@ from utils.generic_helper import load_yaml_file
 @click.option(
     "--pipeline",
     type=click.STRING,
-    help="""
+    help=f"""
 Give the name of the pipeline to run.
-Valid option must be an element of
-['eda', 'download', training', 'sig-effect', 'num-cycle-effect',
-'data-increment-effect', 'sparsity-robustness']
+Valid option must be an element of {[m.value for m in PipelineMode]}.
 """,
 )
 @click.option(
     "--regime",
     type=click.STRING,
-    help="""
+    help=f"""
 Give the name of the data regime to use for running the training pipeline.
-This arg must be used with the 'training' pipeline. 
-Valid option must be an element of
-['charge', 'discharge'].
+This arg must be used with the {PipelineMode.TRAIN} pipeline.
+Valid option must be an element of {[r.value for r in DataRegime]}.
 """,
 )
 @click.option(
     "--sparsity-level",
     type=click.STRING,
-    help="""
-Give where to introduce sparsity, 
-either in the train or test data. This 
-arg must be used with 'sparsity-robutness'
-pipeline. Valid options are ['train', 'test'].
+    help=f"""
+Give where to introduce sparsity,
+either in the train or test data. This
+arg must be used with {PipelineMode.SPARSITY}
+pipeline. Valid options are {[sl.value for sl in SparsityLevel]}.
 """,
 )
 @click.option(
@@ -59,9 +56,9 @@ pipeline. Valid options are ['train', 'test'].
     "--include-inference",
     is_flag=True,
     default=False,
-    help="""Whether to run inference on source test 
-    data. The inference involves predicting the 
-    survival and cummulative hazard functions 
+    help="""Whether to run inference on source test
+    data. The inference involves predicting the
+    survival and cummulative hazard functions
     of the cells in the test data. This flag must be
     used with the 'training' pipeline.
         """,
@@ -78,17 +75,17 @@ def main(
     )
     DATA_CONFIG = load_yaml_file(path=f"{Definition.ROOT_DIR}/config/data_config.yaml")
 
-    if pipeline == "download":
+    if pipeline == PipelineMode.DOWNLOAD:
         download_pipeline()
 
-    elif pipeline == "eda":
+    elif pipeline == PipelineMode.EDA:
         eda_pipeline(
             num_cycles=DATA_CONFIG["num_cycles"],
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             not_loaded=not_loaded,
         )
 
-    elif pipeline == "training":
+    elif pipeline == PipelineMode.TRAIN:
         training_pipeline(
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             num_cycles=DATA_CONFIG["num_cycles"],
@@ -100,7 +97,7 @@ def main(
             include_inference=include_inference,
         )
 
-    elif pipeline == "sig-effect":
+    elif pipeline == PipelineMode.SIG_EFFECT:
         sig_effect_pipeline(
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             num_cycles=DATA_CONFIG["num_cycles"],
@@ -109,7 +106,7 @@ def main(
             parameter_space=MODEL_CONFIG["parameter_space"],
         )
 
-    elif pipeline == "num-cycle-effect":
+    elif pipeline == PipelineMode.CYCLE_EFFECT:
         num_cycle_effect_pipeline(
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             not_loaded=not_loaded,
@@ -118,7 +115,7 @@ def main(
             parameter_space=MODEL_CONFIG["parameter_space"],
         )
 
-    elif pipeline == "data-increment-effect":
+    elif pipeline == PipelineMode.INCREMENT_EFFECT:
         data_increment_effect_pipeline(
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             num_cycles=DATA_CONFIG["num_cycles"],
@@ -128,7 +125,7 @@ def main(
             parameter_space=MODEL_CONFIG["parameter_space"],
         )
 
-    elif pipeline == "low-cycle-prediction":
+    elif pipeline == PipelineMode.LOW_CYCLE:
         low_cycle_prediction_pipeline(
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
             num_cycles=DATA_CONFIG["num_cycles"],
@@ -138,7 +135,7 @@ def main(
             parameter_space=MODEL_CONFIG["parameter_space"],
         )
 
-    elif pipeline == "sparsity-robustness":
+    elif pipeline == PipelineMode.SPARSITY:
         sparsity_robustness_pipeline(
             sparsity_level=sparsity_level,
             loaded_cycles=DATA_CONFIG["loaded_cycles"],
@@ -150,8 +147,8 @@ def main(
         )
     else:
         raise ValueError(
-            f"pipeline must be an element of ['eda', 'download', training', 'sig-effect', 'num-cycle-effect', "
-            f"'data-increment-effect', 'low-cycle-prediction', 'sparsity-robustness'] but {pipeline} is given"
+            f"pipeline must be an element of {[m.value for m in PipelineMode]} "
+            f"but {pipeline} is given"
         )
     return None
 
