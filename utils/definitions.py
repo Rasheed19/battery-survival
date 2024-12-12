@@ -55,3 +55,8 @@ class SurvivalPlot(str, BaseEnum):
 class CIMode(str, BaseEnum):
     PERCENTILE = "percentile"
     PIVOTAL = "pivotal"
+
+
+class DataSaveName(str, BaseEnum):
+    STRUCTURED = "toyota_data_structured.pkl"
+    UNSTRUCTURED = "toyota_data_unstructured.pkl"

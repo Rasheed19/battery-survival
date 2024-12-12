@@ -3,10 +3,12 @@ import matplotlib.ticker as tck
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import colors
 from matplotlib.patches import FancyBboxPatch
 from sklearn.inspection import permutation_importance
 from sklearn.pipeline import Pipeline
 
+from utils.data_wrangler import get_path_signatures
 from utils.definitions import DataRegime, Definition, SurvivalPlot
 from utils.generic_helper import (
     get_rcparams,
@@ -110,35 +112,42 @@ def plot_eol_strip_plot(
     return None
 
 
-def plot_voltage_curve_by_batch(
+def plot_cell2cell_variability(
     loaded_data: dict, num_cycles: int, regime: str
 ) -> None:
-    alphabet_tags = ["a", "b", "c", "d", "e", "f", "g", "h"]
-    fig = plt.figure(figsize=set_size(subplots=(2, 4), adjust_height=0.1))
+    if regime == DataRegime.CHARGE:
+        cmap_colour = "Greens"
+        tag = "a"
+
+    elif regime == DataRegime.DISCHARGE:
+        cmap_colour = "Reds"
+        tag = "b"
+
+    else:
+        raise ValueError(
+            f"""Wrong regime type. Valid options are {DataRegime.CHARGE} and {DataRegime.DISCHARGE},
+            but {regime} was provided.
+            """
+        )
+
+    fig = plt.figure(figsize=set_size(subplots=(2, 4), adjust_height=0.2))
 
     for i, batch in enumerate(Definition.TOYOTA_BATCHES):
         ax = fig.add_subplot(2, 4, i + 1)
-        ax.text(
-            x=-0.1,
-            y=1.4,
-            s=r"\bf {}".format(alphabet_tags[i]),
-            transform=ax.transAxes,
-            fontweight="bold",
-            va="top",
-        )
 
         batch_data = {
             cell: loaded_data[cell]
             for cell in loaded_data
             if loaded_data[cell]["summary_data"]["batch_name"] == batch
         }
-        for d in batch_data.values():
+        cmap = create_colour_dict(cmap_colour, len(batch_data))
+        for j, d in enumerate(batch_data.values()):
             time, voltage = d["cycle_data"][str(num_cycles)][regime]
             ax.plot(
                 time,
                 voltage,
                 linewidth=0.1,
-                color="darkcyan" if regime == DataRegime.CHARGE else "crimson",
+                c=cmap(j),
             )
 
         if i in [4, 5, 6, 7]:
@@ -147,11 +156,20 @@ def plot_voltage_curve_by_batch(
         if i % 4 == 0:
             ax.set_ylabel("Voltage (V)")
 
+        ax.set_title(batch)
         ax.xaxis.set_major_locator(tck.MaxNLocator(nbins=4, steps=[5]))
         ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=4))
 
+    fig.text(
+        0.0,
+        1.0,
+        s=r"\bf {}".format(tag),
+        ha="center",
+        va="center",
+    )
+
     plt.savefig(
-        f"{Definition.ROOT_DIR}/plots/surv_proj_voltage_curve_by_batch_{regime}.pdf",
+        f"{Definition.ROOT_DIR}/plots/surv_proj_cell2cell_variability_{regime}.pdf",
         bbox_inches="tight",
     )
 
@@ -685,6 +703,88 @@ def create_text_box_ga(text_type: str) -> None:
     )
 
     return None
+
+
+def create_colour_dict(cmap_colour: str, n_colours: int) -> colors.Colormap:
+    return plt.get_cmap(cmap_colour, n_colours)
+
+
+def plot_cycle2cycle_variability(loaded_data: dict, num_cycles: int) -> None:
+    sample_cells = (
+        "b1c17",
+        "b2c47",
+        "b3c0",
+        "b4c1",
+        "b5c1",
+        "b6c2",
+        "b7c2",
+        "b8c2",
+    )
+    alphabet_tags = ("a", "b", "c", "d", "e", "f", "g", "h")
+
+    SIG_DEPTH = 3
+
+    fig = plt.figure(figsize=set_size(subplots=(2, 4), adjust_height=0.2))
+    for i, cell in enumerate(sample_cells):
+        ax = fig.add_subplot(2, 4, i + 1)
+        ax.text(
+            x=-0.1,
+            y=1.4,
+            s=r"\bf {}".format(alphabet_tags[i]),
+            transform=ax.transAxes,
+            fontweight="bold",
+            va="top",
+        )
+        # ax.set_title(cell)
+
+        for regime in DataRegime:
+            init_sig = get_path_signatures(
+                time=loaded_data[cell]["cycle_data"]["2"][regime.value][0],
+                voltage=loaded_data[cell]["cycle_data"]["2"][regime.value][1],
+                signature_depth=SIG_DEPTH,
+            )
+            delta_sig = []
+            cycle_list = []
+            for cycle, data in loaded_data[cell]["cycle_data"].items():
+                if 2 < int(cycle) <= num_cycles:
+                    time, voltage = data[regime.value]
+                    curr_sig = get_path_signatures(
+                        time=time, voltage=voltage, signature_depth=SIG_DEPTH
+                    )
+                    delta_sig.append(np.linalg.norm(curr_sig - init_sig, ord=2))
+                    cycle_list.append(int(cycle))
+
+            ax.plot(
+                cycle_list,
+                delta_sig,
+                linestyle="-" if regime == DataRegime.CHARGE else "--",
+                color="darkcyan" if regime == DataRegime.CHARGE else "crimson",
+                label=regime.value,
+            )
+
+            ax.xaxis.set_major_locator(tck.MaxNLocator(steps=[1, 10]))
+            ax.yaxis.set_major_locator(tck.MaxNLocator(nbins=3))
+
+        if i in (4, 5, 6, 7):
+            ax.set_xlabel("Cycle number")
+
+    fig.text(
+        -0.02,
+        0.57,
+        r"$\|\textrm{Sig}^3 \circ X^n_t - \textrm{Sig}^3 \circ X^1_t\|_2$",
+        ha="center",
+        va="center",
+        rotation="vertical",
+    )
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.2))
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/surv_proj_cycle2cycle_variability.pdf",
+        bbox_inches="tight",
+    )
+
+
 
 
 if __name__ == "__main__":

@@ -415,3 +415,45 @@ def download_file(url: str, file_name: str, destination_folder: str = "data") ->
     response = requests.get(url)
     with open(f"{Definition.ROOT_DIR}/{destination_folder}/{file_name}", "wb") as file:
         file.write(response.content)
+
+
+def detect_outliers(
+    data: list[float] | np.ndarray, threshold: float = 1.5
+) -> list[int]:
+    data = np.array(data)
+
+    Q1 = np.percentile(data, 25)
+    Q3 = np.percentile(data, 75)
+
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - threshold * IQR
+    upper_bound = Q3 + threshold * IQR
+
+    outlier_indices = np.where((data < lower_bound) | (data > upper_bound))[0]
+
+    return list(outlier_indices)
+
+
+def remove_outliers_pth(
+    x: np.ndarray, percentile: float, multiplier: float
+) -> tuple[np.ndarray, int]:
+    pth_val = np.percentile(x, percentile)
+
+    if percentile > 50:
+        outliers = np.argwhere(x > pth_val * multiplier)
+        x_clean = x.copy()
+    else:
+        outliers = np.argwhere(x < pth_val / multiplier)
+        x_clean = x.copy()
+
+    if len(outliers) > 0:
+        for o in outliers:
+            if o == 0:
+                x_clean[o] = x[1]
+            if o == len(x) - 1:
+                x_clean[o] = x[-2]
+            else:
+                x_clean[o] = (x_clean[o - 1] + x_clean[o + 1]) / 2
+
+    return x_clean, len(outliers)

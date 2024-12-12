@@ -1,14 +1,17 @@
 import os
 
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import medfilt
 
-from utils.definitions import DataRegime, Definition
-from utils.generic_helper import dump_data, time_monitor
+from utils.definitions import DataRegime, DataSaveName, Definition
+from utils.generic_helper import dump_data, read_data, remove_outliers_pth, time_monitor
+from utils.plotter import create_colour_dict, set_size
 
 
 def load_single_batch_to_dict(
-    filename: str, batch_num: str, loaded_cycles: int | None = None
+    filename: str, batch_num: int, num_cycles: int | None = None
 ) -> dict:
     """
     This function loads the downloaded matlab file into a dictionary.
@@ -16,8 +19,8 @@ def load_single_batch_to_dict(
     Args:
     ----
         filename:     string with the path of the data file
-        batch_num:    batch number
-        loaded_cycles:   number of cycles to be loaded
+        batch_num:    index of this batch
+        num_cycles:   number of cycles to be loaded
 
     Returns a dictionary with data for each cell in the batch.
     """
@@ -56,10 +59,10 @@ def load_single_batch_to_dict(
 
     for i in range(num_cells):
         # decide how many cycles will be loaded
-        if loaded_cycles is None:
+        if num_cycles is None:
             loaded_cycles = f[batch["cycles"][i, 0]]["I"].shape[0]
         else:
-            loaded_cycles = min(loaded_cycles, f[batch["cycles"][i, 0]]["I"].shape[0])
+            loaded_cycles = min(num_cycles, f[batch["cycles"][i, 0]]["I"].shape[0])
 
         if i % 10 == 0:
             print(f"* {i} cells loaded ({loaded_cycles} cycles)")
@@ -98,24 +101,20 @@ def load_single_batch_to_dict(
     return batch_dict
 
 
-def load_all_batches_to_dict(loaded_cycles: int | None = None) -> dict[str, dict]:
+def load_all_batches_to_dict(num_cycles: int | None = None):
     """
-    This function load downloaded matlab files as pickle files.
+    This function load and save downloaded matlab files as pickle files.
     Note that the battery data (downloaded from https://data.matr.io/1/) must be
-    put in "data/toyota" directory. After calling this function, extracted files in
-    dict will be returned.
+    put in "data" folder. After calling this function, extracted files
+    in .pkl format will be stored in "data" folder.
 
     Args:
     ----
-         loaded_cycles:  number of cycles to load
-
-    Returns:
-    -------
-        all loaded batches in dict
+         num_cycles:  number of cycles to load
     """
 
     # paths for data file with each batch of cells
-    mat_filenames = {
+    mat_filenames = mat_filenames = {
         f"batch{b}": os.path.join(f"{Definition.ROOT_DIR}", "data/toyota", mat_file)
         for b, mat_file in zip(
             range(1, 9),
@@ -135,56 +134,56 @@ def load_all_batches_to_dict(loaded_cycles: int | None = None) -> dict[str, dict
     start = time_monitor()
     print("Loading batch 1 data...")
     batch1 = load_single_batch_to_dict(
-        mat_filenames["batch1"], 1, loaded_cycles=loaded_cycles
+        mat_filenames["batch1"], 1, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 2 data...")
     batch2 = load_single_batch_to_dict(
-        mat_filenames["batch2"], 2, loaded_cycles=loaded_cycles
+        mat_filenames["batch2"], 2, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 3 data...")
     batch3 = load_single_batch_to_dict(
-        mat_filenames["batch3"], 3, loaded_cycles=loaded_cycles
+        mat_filenames["batch3"], 3, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 4 data...")
     batch4 = load_single_batch_to_dict(
-        mat_filenames["batch4"], 4, loaded_cycles=loaded_cycles
+        mat_filenames["batch4"], 4, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 5 data...")
     batch5 = load_single_batch_to_dict(
-        mat_filenames["batch5"], 5, loaded_cycles=loaded_cycles
+        mat_filenames["batch5"], 5, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 6 data...")
     batch6 = load_single_batch_to_dict(
-        mat_filenames["batch6"], 6, loaded_cycles=loaded_cycles
+        mat_filenames["batch6"], 6, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 7 data...")
     batch7 = load_single_batch_to_dict(
-        mat_filenames["batch7"], 7, loaded_cycles=loaded_cycles
+        mat_filenames["batch7"], 7, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
     start = time_monitor()
     print("\nLoading batch 8 data...")
     batch8 = load_single_batch_to_dict(
-        mat_filenames["batch8"], 8, loaded_cycles=loaded_cycles
+        mat_filenames["batch8"], 8, num_cycles=num_cycles
     )
     print(time_monitor(start))
 
@@ -221,10 +220,10 @@ def load_all_batches_to_dict(loaded_cycles: int | None = None) -> dict[str, dict
                     (batch1[bk]["summary"][j], batch2[b2_keys[i]]["summary"][j])
                 )
 
-        # useful when all cycles loaded
-        if loaded_cycles is None:
-            last_cycle = len(batch1[bk]["cycle_dict"].keys())
+        last_cycle = len(batch1[bk]["cycle_dict"].keys())
 
+        # useful when all cycles loaded
+        if num_cycles is None:
             for j, jk in enumerate(batch2[b2_keys[i]]["cycle_dict"].keys()):
                 batch1[bk]["cycle_dict"][str(last_cycle + j)] = batch2[b2_keys[i]][
                     "cycle_dict"
@@ -278,6 +277,137 @@ def load_all_batches_to_dict(loaded_cycles: int | None = None) -> dict[str, dict
     return data_dict
 
 
+def clean_chargetime_curves(loaded_data: dict[str, dict]) -> dict[str, dict]:
+    _, ax = plt.subplots(figsize=set_size())
+    cmap = create_colour_dict(cmap_colour="Blues", n_colours=len(loaded_data))
+
+    loaded_data_cleaned = dict(loaded_data)
+
+    for i, (cell, data) in enumerate(loaded_data.items()):
+        chargetimes = data["summary"]["chargetime"]
+        cleaned_chargetimes, n_outliers = remove_outliers_pth(
+            x=chargetimes, percentile=95, multiplier=5
+        )
+
+        if n_outliers > 0:
+            loaded_data_cleaned[cell]["summary"]["chargetime"] = cleaned_chargetimes
+            print(f"- {n_outliers} outliers removed from cell {cell}")
+
+        ax.plot(loaded_data_cleaned[cell]["summary"]["chargetime"], c=cmap(i))
+
+    ax.set_ylabel("Chargetime")
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/diagnosis_plot_chargetime.pdf",
+        bbox_inches="tight",
+    )
+
+    print(
+        "* Curves cleaned; see ./plots/diagnosis_plot_chargetime.pdf for the generated plot"
+    )
+
+    return loaded_data_cleaned
+
+
+def remove_jumps(
+    time: np.ndarray, current: np.ndarray, voltage: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Here we remove jumps in time array and adjust for it in the current and voltage profiles.
+    """
+
+    epsilon = 1.0
+    time_diff = np.diff(time)
+    odd_indices = np.where(time_diff >= time_diff.min() + epsilon)[0]  # get all indices where consecutive difference is greater than min(diff) + epsilon; this should filter all jumps
+
+    current = [current[i] for i in range(len(current)) if i not in odd_indices + 1]
+    voltage = [voltage[i] for i in range(len(voltage)) if i not in odd_indices + 1]
+
+    time_diff = [time_diff[i] for i in range(len(time_diff)) if i not in odd_indices]
+    time = np.cumsum(time_diff)
+    time = np.insert(time, 0, 0.0)
+
+    return time, np.array(current), np.array(voltage)
+
+def clean_iv_curves(loaded_data: dict[str, dict]) -> dict[str, dict]:
+    MIN_TIME = 0.0  # time starts from 0.0 for each cycle
+    MAX_TIME = 61.0 # normally, max cycle time is around 60.5 mins; this will do filter odd jumps
+
+    loaded_data_cleaned = dict(loaded_data)
+    global_min_time = 9999.0
+    global_max_time = 0.0
+
+
+    for cell, data in loaded_data.items():
+        n_outliers = 0
+        for cycle, cycle_data in data["cycle_dict"].items():
+            times = cycle_data["t"]
+            voltage = cycle_data["V"]
+            current = cycle_data["I"]
+
+            # remove irregular negative times
+            t_min = times.min()
+            if t_min < MIN_TIME:
+                pos_times = times >= 0
+                times = times[pos_times]
+                voltage = voltage[pos_times]
+                current = current[pos_times]
+
+                n_outliers += 1
+
+            # remove irregular jumps
+            if times.max() > MAX_TIME:
+                times, current, voltage = remove_jumps(times, current, voltage)
+                n_outliers += 1
+
+
+            if times.min() < global_min_time:
+                global_min_time = times.min()
+
+            if times.max() > global_max_time:
+                global_max_time = times.max()
+
+            loaded_data_cleaned[cell]["cycle_dict"][cycle]["t"] = times
+            loaded_data_cleaned[cell]["cycle_dict"][cycle]["V"] = voltage
+            loaded_data_cleaned[cell]["cycle_dict"][cycle]["I"] = current
+
+        if n_outliers > 0:
+            print(f"- {n_outliers} outliers removed from cell {cell}")
+
+    print(f"* Curves cleaned: t_min = {global_min_time}, t_max = {global_max_time}")
+
+    return loaded_data_cleaned
+
+
+def clean_discharge_capacity_curves(loaded_data: dict[str, dict]):
+    _, ax = plt.subplots(figsize=set_size())
+    cmap = create_colour_dict(cmap_colour="Blues", n_colours=len(loaded_data))
+
+    loaded_data_cleaned = dict(loaded_data)
+    for i, (cell, data) in enumerate(loaded_data.items()):
+        discharge_capacity = data["summary"]["QDischarge"]
+        discharge_capacity = medfilt(discharge_capacity, kernel_size=3)
+
+        loaded_data_cleaned[cell]["summary"]["QDischarge"] = discharge_capacity
+
+        print(f"- discharge capacity curve for cell {cell} cleaned")
+
+        ax.plot(loaded_data_cleaned[cell]["summary"]["QDischarge"], c=cmap(i))
+
+    ax.set_ylabel("Discharge capacity")
+
+    plt.savefig(
+        f"{Definition.ROOT_DIR}/plots/diagnosis_plot_discharge_capacity.pdf",
+        bbox_inches="tight",
+    )
+
+    print(
+        "* Curves cleaned; see ./plots/diagnosis_plot_discharge_capacity.pdf for the generated plot"
+    )
+
+    return loaded_data_cleaned
+
+
 def get_constant_indices(
     feature: list[float] | np.ndarray, regime: str
 ) -> tuple[int, int]:
@@ -316,31 +446,16 @@ def get_constant_indices(
 
 def get_charge_discharge_values(
     data_dict: dict[str, dict], col_name: str, cell: str, cycle: str, regime: str
-) -> np.ndarray:
-    TOL = 1e-10
-
-    # An outlier in b1c2 at cycle 2176, measurement is in seconds and thus divide it by 60
-    if cell == "b1c2" and cycle == "2176":
-        summary_charge_time = (
-            data_dict[cell]["summary"]["chargetime"][int(cycle) - 2] / 60
-        )
-    else:
-        summary_charge_time = data_dict[cell]["summary"]["chargetime"][int(cycle) - 2]
+) -> np.ndarray | None:
+    cycle_charge_time = data_dict[cell]["summary"]["chargetime"][int(cycle) - 2]
 
     values = data_dict[cell]["cycle_dict"][cycle][col_name]
+    times = data_dict[cell]["cycle_dict"][cycle]["t"]
 
     if regime == DataRegime.CHARGE:
-        return np.array(
-            values[
-                data_dict[cell]["cycle_dict"][cycle]["t"] - summary_charge_time <= TOL
-            ]
-        )
+        return np.array(values[times <= cycle_charge_time])
     elif regime == DataRegime.DISCHARGE:
-        return np.array(
-            values[
-                data_dict[cell]["cycle_dict"][cycle]["t"] - summary_charge_time > TOL
-            ]
-        )
+        return np.array(values[times > cycle_charge_time])
     else:
         raise ValueError(
             f"option must be {DataRegime.CHARGE} or {DataRegime.DISCHARGE} but {regime} given."
@@ -359,16 +474,9 @@ def get_cc_voltage_curve(
         ccv = discharge_values["V"]
         cct = discharge_values["t"]
 
-        # fix outlier in cell b7c36 at cycle 50
-        if cell == "b7c36" and cycle == "50":
-            bool_filter = cct > 0.0
-            cct = cct[bool_filter]
-            ccv = ccv[bool_filter]
-
     elif regime == DataRegime.DISCHARGE:
         # get the indices of the start and end of CC
         start_i, end_i = get_constant_indices(discharge_values["I"], regime)
-
         ccv = discharge_values["V"][start_i : end_i + 1]
         cct = discharge_values["t"][start_i : end_i + 1]
 
@@ -391,8 +499,26 @@ def get_end_of_life(
     return end_of_life, cycle[end_of_life_bool], discharge_capacity[end_of_life_bool]
 
 
-def dump_toyota_structured_data(loaded_cycles: int) -> None:
-    all_batches: dict = load_all_batches_to_dict(loaded_cycles=loaded_cycles)
+def dump_toyota_unstructured_data(loaded_cycles: int | None) -> None:
+    all_batches: dict = load_all_batches_to_dict(loaded_cycles)
+    dump_data(
+        data=all_batches,
+        fname=DataSaveName.UNSTRUCTURED,
+        path=f"{Definition.ROOT_DIR}/data",
+    )
+
+    return None
+
+
+def dump_toyota_structured_data() -> None:
+    all_batches: dict = read_data(
+        fname=DataSaveName.UNSTRUCTURED, path=f"{Definition.ROOT_DIR}/data"
+    )
+
+    # do some cleaning
+    all_batches = clean_chargetime_curves(all_batches)
+    all_batches = clean_iv_curves(all_batches)
+    all_batches = clean_discharge_capacity_curves(all_batches)
 
     structured_data: dict = {}
 
@@ -424,7 +550,7 @@ def dump_toyota_structured_data(loaded_cycles: int) -> None:
 
     dump_data(
         data=structured_data,
-        fname="toyota_data.pkl",
+        fname=DataSaveName.STRUCTURED,
         path=f"{Definition.ROOT_DIR}/data",
     )
 
