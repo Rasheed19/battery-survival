@@ -157,10 +157,7 @@ cython_debug/
 data/
 plots/
 literature/
-surv.venv
-test/
-.vscode/
-.python-version
+archive/
 
 
 
