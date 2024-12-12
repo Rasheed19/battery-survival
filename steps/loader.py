@@ -1,18 +1,21 @@
-from utils.definitions import Definition
+from utils.definitions import DataSaveName, Definition
 from utils.generic_helper import check_cells_stats, read_data
-from utils.toyota import dump_toyota_structured_data
+from utils.toyota import dump_toyota_structured_data, dump_toyota_unstructured_data
 
 
 def data_loader(
-    loaded_cycles: int,
+    loaded_cycles: int | None,
     not_loaded: bool = False,
     verbose: int = 1,
 ) -> dict:
     if not_loaded:
-        dump_toyota_structured_data(loaded_cycles=loaded_cycles)
+        dump_toyota_unstructured_data(loaded_cycles=loaded_cycles)
+        dump_toyota_structured_data()
 
     # read the loaded data
-    loaded_data = read_data(fname="toyota_data.pkl", path=f"{Definition.ROOT_DIR}/data")
+    loaded_data = read_data(
+        fname=DataSaveName.STRUCTURED, path=f"{Definition.ROOT_DIR}/data"
+    )
 
     # check cell stats
     if verbose > 0:
