@@ -3,7 +3,8 @@ from utils.definitions import DataRegime, Definition
 from utils.generic_helper import get_logger
 from utils.plotter import (
     plot_eol_strip_plot,
-    plot_voltage_curve_by_batch,
+    plot_cycle2cycle_variability,
+    plot_cell2cell_variability
 )
 
 
@@ -24,14 +25,17 @@ def eda_pipeline(
         save_tag="eol_strip_plot",
     )
 
-    logger.info("Plotting cell voltage curve by batch...")
+    logger.info("Plotting cell-to-cell variability...")
 
     for regime in DataRegime:
-        plot_voltage_curve_by_batch(
+        plot_cell2cell_variability(
             loaded_data=loaded_data,
             num_cycles=num_cycles,
             regime=regime.value,
         )
+
+    logger.info("Plotting cycle-to-cycle variabilty...")
+    plot_cycle2cycle_variability(loaded_data=loaded_data, num_cycles=num_cycles)
 
     logger.info(
         "EDA pipeline finished successfully. Check the 'plots' folder for the results."
