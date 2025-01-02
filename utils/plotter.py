@@ -632,7 +632,7 @@ def plot_deg_ga(deg_type: str) -> None:
     )
     ax.set_xlabel(r"Cycle, $t$")
     ax.set_ylabel(r"$\hat{S}(t)$" if deg_type == "survival" else r"$\hat{H}(t)$")
-    ax.set_title("Cell survival" if deg_type == "survival" else "Cell risk")
+    ax.set_title("Probability of cell survival" if deg_type == "survival" else "Hazard risk")
 
     plt.savefig(
         f"{Definition.ROOT_DIR}/plots/surv_proj_ga_{deg_type}.svg",
@@ -790,5 +790,5 @@ def plot_cycle2cycle_variability(loaded_data: dict, num_cycles: int) -> None:
 if __name__ == "__main__":
     # plot_sig_num_cycle_effect_history()
     # plot_voltage_ga(regime="discharge")
-    # plot_deg_ga(deg_type="survival")
-    create_text_box_ga(text_type="sig")
+    plot_deg_ga(deg_type="hazard")
+    # create_text_box_ga(text_type="sig")

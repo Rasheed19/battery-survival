@@ -4,7 +4,7 @@ they use features extracted from charge or discharge data regime: the charge, an
 
 Below is the graphical abstract of the project, illustrating the modelling steps:
 
-![graphical abstract](assets/graphical_abstract.png)
+![graphical abstract](assets/graphical_abstract.jpg)
 
 ## Set up
 1. Clone the repository by running
@@ -24,7 +24,6 @@ Below is the graphical abstract of the project, illustrating the modelling steps
 1. Prepare all modules and required directories by running the following:
     ```
     make setup
-    make create-required-dir
     ```
 
 ## Usage
@@ -67,4 +66,20 @@ This project is broken down into pipelines which allow for reproducibility, cust
 Note that all generated plots and data after running any of the pipelines above will be stored in `plots` and `data` folder respectively with appropriate tags for ease of identification. To see help for running the pipelines, run:
 ```
 python run.py --help
+```
+
+## Citation
+If you use this code in your research, please cite:
+
+```bibtex
+@article{IBRAHEEM2024100465,
+    title = {Robust survival model for the prediction of Li-ion battery lifetime reliability and risk functions},
+    author = {Rasheed Ibraheem and Timothy I. Cannings and Torben Sell and Gonçalo {dos Reis}},
+    journal = {Energy and AI},
+    pages = {100465},
+    year = {2024},
+    issn = {2666-5468},
+    doi = {https://doi.org/10.1016/j.egyai.2024.100465},
+    url = {https://www.sciencedirect.com/science/article/pii/S2666546824001319}
+}
 ```
