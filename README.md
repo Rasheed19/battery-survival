@@ -76,8 +76,9 @@ If you use this code in your research, please cite:
     title = {Robust survival model for the prediction of Li-ion battery lifetime reliability and risk functions},
     author = {Rasheed Ibraheem and Timothy I. Cannings and Torben Sell and Gonçalo {dos Reis}},
     journal = {Energy and AI},
+    volume = {19},
     pages = {100465},
-    year = {2024},
+    year = {2025},
     issn = {2666-5468},
     doi = {https://doi.org/10.1016/j.egyai.2024.100465},
     url = {https://www.sciencedirect.com/science/article/pii/S2666546824001319}
